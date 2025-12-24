@@ -75,4 +75,4 @@ php artisan test --filter=TenantDataIsolationTest	Executes the cross-tenant secu
  
 Developer Note: > Always use http://[subdomain].localhost:8000 during local development to ensure the Tenancy middleware can correctly resolve the context.
 
-<img width="468" height="639" alt="image" src="https://github.com/user-attachments/assets/b4f3bb43-6569-450e-9cc9-80415e5e9e2d" />
+<img width="468" height="639" alt="image" src="https://github.com/user-attachments/assets/fed3bb01-bb7c-4a6f-9a22-57dc4a1b5ac9" />
