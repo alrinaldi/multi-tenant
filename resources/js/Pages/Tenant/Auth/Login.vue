@@ -1,0 +1,129 @@
+<script setup>
+import { Head, Link, useForm } from '@inertiajs/vue3';
+
+/**
+ * @description Storefront Authentication page for individual tenants.
+ * Provides access for customers to manage orders and personalized settings.
+ */
+
+const form = useForm({
+    email: '',
+    password: '',
+    remember: false,
+});
+
+/**
+ * Submit customer credentials using a relative path to ensure 
+ * the request stays within the current tenant's subdomain context.
+ */
+const submit = () => {
+    form.post('/login', {
+        onFinish: () => form.reset('password'),
+    });
+};
+</script>
+
+<template>
+    <Head title="Customer Login" />
+
+    <div class="glass-layout min-vh-100 d-flex align-items-center justify-content-center p-4">
+        <div class="glass-card p-5" style="width: 100%; max-width: 450px;">
+            
+            <div class="text-center mb-4">
+                <div class="icon-box mx-auto mb-3">👤</div>
+                <h2 class="fw-bold text-dark">Customer Access</h2>
+                <p class="text-secondary">Please sign in to continue with your purchase.</p>
+            </div>
+
+            <form @submit.prevent="submit">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-secondary text-uppercase">Email Address</label>
+                    <input v-model="form.email" type="email" class="form-control glass-input" placeholder="name@example.com" required autofocus>
+                    <div v-if="form.errors.email" class="text-danger small mt-1">{{ form.errors.email }}</div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold small text-secondary text-uppercase">Password</label>
+                    <input v-model="form.password" type="password" class="form-control glass-input" placeholder="••••••••" required>
+                    <div v-if="form.errors.password" class="text-danger small mt-1">{{ form.errors.password }}</div>
+                </div>
+
+                <div class="mb-4 form-check d-flex align-items-center gap-2">
+                    <input v-model="form.remember" class="form-check-input mt-0" type="checkbox" id="remember">
+                    <label class="form-check-label small text-secondary" for="remember">Remember Me</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 btn-glow fw-bold py-3 rounded-pill text-uppercase" :disabled="form.processing">
+                    {{ form.processing ? 'Authenticating...' : 'Sign In' }}
+                </button>
+            </form>
+
+            <div class="text-center mt-4 border-top pt-4">
+                <p class="text-muted small mb-2">New customer?</p>
+                <Link href="/register" class="btn btn-outline-primary rounded-pill w-100 fw-bold">
+                    Create New Account
+                </Link>
+            </div>
+
+            <div class="text-center mt-3">
+                <Link href="/" class="text-decoration-none text-secondary small">← Return to Storefront</Link>
+            </div>
+
+        </div>
+    </div>
+</template>
+
+<style scoped>
+/* Refined Styling for Customer Storefront */
+.glass-layout { 
+    background-color: #f3f5f9; 
+    background-image: radial-gradient(#e1e6ed 1px, transparent 1px); 
+    background-size: 30px 30px; 
+}
+
+.glass-card { 
+    background: rgba(255, 255, 255, 0.75); 
+    backdrop-filter: blur(20px); 
+    border: 1px solid rgba(255, 255, 255, 0.8); 
+    border-radius: 28px; 
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05); 
+}
+
+.glass-input { 
+    background: rgba(255, 255, 255, 0.6); 
+    border: 1px solid #e5e7eb; 
+    padding: 13px 18px; 
+    border-radius: 14px; 
+    transition: all 0.3s ease; 
+}
+
+.glass-input:focus { 
+    background: #fff; 
+    border-color: #667eea; 
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15); 
+    outline: none; 
+}
+
+.icon-box { 
+    width: 60px; height: 60px; 
+    background: linear-gradient(135deg, #f8f9ff 0%, #eef2ff 100%); 
+    color: #4f46e5; 
+    border-radius: 20px; 
+    display: flex; align-items: center; justify-content: center; 
+    font-size: 24px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+}
+
+.btn-glow { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+    border: none; 
+    box-shadow: 0 4px 20px rgba(118, 75, 162, 0.3); 
+    transition: all 0.2s ease; 
+}
+
+.btn-glow:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 8px 25px rgba(118, 75, 162, 0.4); 
+    color: white;
+}
+</style>
