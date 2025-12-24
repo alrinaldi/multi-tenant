@@ -1,59 +1,78 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+Technical Documentation: Multi-Tenant SaaS Infrastructure
+Architecture Pattern: Multi-Database Isolation (Isolated Schema)
+ 
+1. High-Level Architecture
+This platform utilizes a Database-per-Tenant approach. Each client (tenant) is provisioned with a physically separate database. This strategy ensures maximum data privacy, simplifies individual backups, and allows for custom schema scaling per client.
+Core Infrastructure Components:
+•	Central/Landlord Store: The primary database responsible for managing the tenant lifecycle, domain mappings, and global system configurations.
+•	Tenant Instances: Dynamic databases generated automatically for every new organization.
+•	Context Resolver: Middleware that detects tenant identity based on the incoming request's hostname (Subdomain).
+ 
+2. Technical Stack
+Layer	Component	Description
+Backend	Laravel 11	Robust PHP Framework for enterprise logic.
+Frontend	Vue 3 & Inertia.js	Reactive UI providing a Single Page Application (SPA) experience.
+Database	MySQL / MariaDB	Relational Database Management System.
+Tenancy	Stancl/Tenancy	The engine responsible for dynamic DB switching & migrations.
+UI Design	Glassmorphism	Modern, premium interface with translucent aesthetic.
+ 
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+3. PERFORMANCE: TENANT-AWARE CACHING
+To achieve sub-millisecond latency and minimize SQL overhead, the system utilizes a centralized Redis server managed via the Predis client.
+3.1 Redis Infrastructure
+•	Driver: Redis (v7.x recommended) via Predis library.
+•	Tenant Separation: Cache isolation is maintained through Dynamic Key Prefixing.
+•	Logic: Upon tenant initialization, the application dynamically updates the cache.prefix configuration.
+o	Prefix Format: tenant_{tenant_id}:
+o	Result: This ensures Tenant A cannot access or overwrite the cached data of Tenant B in the shared Redis memory.
+3.2 Intelligent Data Caching
+•	Query Caching: Frequently accessed resources (Products, Settings) are stored in RAM.
+•	Rate Limiting: Redis handles per-tenant request throttling to prevent API abuse and ensure system stability.
+ 
+4. SECURITY HARDENING & DATA PROTECTION
+Security is implemented as a "Defense in Depth" strategy across all tenant databases.
+4.1 Protection Against SQL Injection
+The system utilizes the Laravel Eloquent ORM and Query Builder, which natively use PDO Parameter Binding. This ensures that raw input is never directly concatenated into SQL queries.
+4.2 Advanced Input Validation
+Strict validation rules are applied at the Request layer before data reaches the controller.
+•	Type Hinting: Ensuring numeric inputs for prices and stock.
+•	Sanitization: Stripping malicious HTML/scripts to prevent XSS (Cross-Site Scripting).
+4.3 At-Rest Data Encryption
+Sensitive tenant information (such as API keys or private contact details) is encrypted using AES-256-GCM.
+•	Mechanism: Encrypted using the Crypt facade with the system's unique APP_KEY.
+•	Isolation: While the logic is central, the encrypted blobs are stored within the isolated tenant databases.
 
-## About Laravel
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+5. Data & Resource Isolation
+A. Database Isolation
+Upon receiving an HTTP request, the system identifies the subdomain. If valid, the system terminates the central database connection and hot-swaps it with the specific tenant database connection.
+B. Storage & Asset Isolation
+To prevent cross-tenant asset access, each tenant is assigned a dedicated root directory within the storage path:
+•	Directory Path: storage/app/public/tenant_[id]/
+•	Asset URL: http://[subdomain].localhost/storage/[id]/...
+ 
+6. Key Logic & Workflows
+🚀 Tenant Provisioning (Deployment)
+1.	Admin enters the organization name and desired subdomain in the Central Dashboard.
+2.	The system validates subdomain availability against the tenants table.
+3.	Database Creation: An automated CREATE DATABASE command is executed.
+4.	Auto-Migration: The entire tenant schema (products, orders, users) is migrated to the new database.
+5.	Domain Binding: The subdomain is linked to the Tenant ID for future request resolution.
+🛡️ Cross-Tenant Security
+Authentication is strictly scoped to the tenant's database. A user registered in Store A does not exist in the database of Store B, eliminating any possibility of session hijacking or unauthorized cross-tenant access.
+ 
+7. Quality Assurance & Testing
+The infrastructure is guarded by an automated Feature Test Suite covering:
+•	Data Integrity: Validating mandatory fields like store_name during provisioning.
+•	Database Isolation: Ensuring Product::all() only retrieves records for the active tenant.
+•	Teardown Protocol: Utilizing a custom tearDown method to drop physical databases after test cycles to maintain environment cleanliness.
+ 
+8. Maintenance Commands
+Command	Utility
+php artisan tenants:migrate	Runs migrations across all existing tenant databases.
+php artisan tenants:list	Displays active tenants and their database connection status.
+php artisan test --filter=TenantDataIsolationTest	Executes the cross-tenant security and isolation validation.
+ 
+Developer Note: > Always use http://[subdomain].localhost:8000 during local development to ensure the Tenancy middleware can correctly resolve the context.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+<img width="468" height="639" alt="image" src="https://github.com/user-attachments/assets/b2e5b168-d040-4791-a1c4-529aa691fef3" />
